@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+    <link href="http://fonts.googleapis.com/css?family=Raleway+Dots:400" rel="stylesheet" type="text/css">
+    <link href='http://fonts.googleapis.com/css?family=Slabo+13px' rel='stylesheet' type='text/css'>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script type="text/javascript" src="index.js"></script>
+    <style>
+      #controls {
+      position: absolute; left: 0px; top: 0px; height: 100%; width: 100%; padding: 10%; background-color: rgba(0,0,152,0.7); color: #fdfdfd; z-index: 6;
+      }
+      #menu {
+      position: absolute; right: 7px; top: 7px; z-index: 6; display: none; font-size: 32pt; font-family: "Raleway Dots";
+      }
+      #play {color: #fff; background-color: #ff2323; font-family: "Raleway Dots"; font-size: 92px; text-align: center; padding: 10px; border-radius: 5%;}
+    </style>
+  </head>
+  <div class="app">
+    <body onload="draw();" style='font-family:Slabo'>
+      <div id="menu">&#8801 </div>
+    <table id="controls">
+	<tr>
+	  <td valign="top" width="16em">
+	    <span style='font-size:70px;font-family: "Raleway Dots"'>Dots</span> 
+	  </td>
+	  <td valign="top" style="padding-left: 10px; padding-right: 10px; width: 15em;">
+	    <input id="ai" type="checkbox"><b>Play Computer</b> 
+	    <br/><input id="computer_first" type="checkbox" value="false"><span style="font-size:small;color:#777">Computer goes first</span>
+	    <br/><span style="font-size: small"> Level: <select style="font-size: small" id="level">
+		<option value="notbad">Not Bad</option>
+		<option value="dumb">Dumb</option>
+		<option value="dumber">Dumber</option>
+		<option value="dumbest">Dumbest</option>
+	    </select></span>
+	  </td>
+	  <td valign="top"  style="padding-left: 10px; padding-right: 10px; width: 15em;">
+	    <b>Board Size</b>
+	    <br/>X: <input style="width:3em" id="x" value="8" type="number"> Y: <input style="width:3em" value="8" id="y" type="number">
+	  </td>
+	  <td valign="top" halign="right"  style="padding-left: 10px; padding-right: 10px; width: auto; text-align: right">
+	    <button id="restart"><b>Restart</b>
+	      <span id="resetNote" style="color: #f00; font-style:italic;font-size:small;display:none">Restart game to see new grid size</span>
+	    </button>
+	  </td>
+	</tr>
+	<tr>
+	  <td style="text-align:center" colspan="4"><button id="play">Play!</button>
+	</tr>
+    </table>
+    
+    <canvas id="board" style="margin-left:auto;margin-right:auto;z-index: 1; position: absolute; left: 5%; top: 5%;"></canvas>
+    <canvas id="lastmove" style="margin-left:auto;margin-right:auto;z-index: 2; position: absolute; left: 5%; top: 5%;"></canvas>
+    <canvas id="animate" style="margin-left:auto;margin-right:auto;z-index: 3; position: absolute; left: 5%; top: 5%;"></canvas>
+    </div>
+  </body>
+</html>
+<!--
+    
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+        <title>Blank App</title>
+    </head>
+    <body>
+        <script type="text/javascript" src="cordova.js"></script>
+
+    </body>
+</html>
+-->
