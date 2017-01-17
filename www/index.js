@@ -1,3 +1,6 @@
+const FINAL = 2
+const PREVIEW = 3
+
 function deepCopyArray (a) {
 	var b = $.extend(true, [], a);
 	return b}
@@ -32,312 +35,6 @@ function range(start, count) {
     });
 }
 
-function StupidAI (grid) {
-	
-	var slf = this
-	slf.grid = grid
-	
-	slf.copyScenario = function () {
-		// Copy ourselves...
-		grid = slf.grid.copyGrid();
-		return grid.ai
-	}
-
-	slf.lookForSquares = function () {
-		// smartish AI -- look for a complete box...
-		for (var x=0; x < (slf.grid.x_size - 1); x++) {
-			//console.log('lfs: Checking column: '+x);
-			for (var y=0; y < (slf.grid.y_size - 1); y++) {
-				//console.log('lfs: Checking square at '+x+','+y);
-				var result = slf.grid.checkForThreeSides([x,y])
-				//console.log('lfs==> '+result);
-				if (result) {
-					//console.log('lfs Making move with result: '+result);
-					slf.makeMove(result[0],result[1],result[2]);
-					return true;
-				}
-				//else {
-				//	console.log('lfs No dice.')
-				//}
-			} // End for y loop
-		} // End for x loop
-		//console.log('No squares to be found.');
-	}
-
-	slf.lookForNonLosingMoves = function () {
-		var lookAtPoint = function (x, y, vertical) {
-			if (slf.isLineNotADup(x,y,vertical)) {
-				console.log('Checking lookAtPoint '+x+'.'+y+'.'+vertical);
-				if (slf.grid.checkForIncompleteSides([x,y]).length <= 2) {
-					//console.log('Rejecting: we have two or fewer incomplete sides: '+slf.grid.checkForIncompleteSides([x,y]));
-					return false
-				}
-				if (vertical) {
-					// Then we're checking out the point and the box left of it...
-					if ((x-1) >= 0 && slf.grid.checkForIncompleteSides([x-1,y]).length <= 2) {
-						//console.log('Rejecting: we have two or fewer incomplete sides on left: '+slf.grid.checkForIncompleteSides([x-1,y]));
-						return false
-					}
-				}
-				else {
-					// horizontal... in that case, we're checking the box above...
-					if ((y-1) >= 0 && slf.grid.checkForIncompleteSides([x,y-1]).length <= 2) {
-						//console.log('Rejecting: we have two or fewer incomplete sides above: '+slf.grid.checkForIncompleteSides([x,y-1]));
-						return false
-					}
-				}
-				slf.makeMove(x,y,vertical)
-				return true
-			}}
-		return slf.iterateRandomly(lookAtPoint);
-	}
-
-	slf.lookForLeastBadAlternative = function () {
-		console.log('slf.lookForLeastBadAlternative() starting...');
-		best_move = false
-		squares_lost = 1000000000000000
-		for (var x=0; x < (slf.grid.x_size - 1); x++) {
-			//console.log('lba Checking column: '+x);
-			for (var y=0; y < (slf.grid.y_size - 1); y++) {
-				//console.log('lba Checking square at '+x+','+y);
-				for (var vert=0; vert < 2; vert++) {
-					if (slf.isLineNotADup(x,y,vert)) {
-						// If the move is worth considering...
-						console.log('Considering ',x+'.'+y+'-'+vert);
-						squares_looked_at = 0 
-						squares_lost_this_move = 0; // Start w/ 0...
-						while (squares_looked_at < 2) {
-							if (squares_looked_at==0) {
-								incomplete_sides = slf.grid.checkForIncompleteSides([x,y])
-							}
-							else if (squares_looked_at==1) {
-								// If we've already looked at a square...
-								if (vert) {
-									// If we're a vertical line, we're looking at
-									// ourselves + the square to the left
-									incomplete_sides = slf.grid.checkForIncompleteSides([x-1,y])
-								}
-								else {
-									// if we're a horizontal line, we're looking at
-									// ourselves + the square above
-									incomplete_sides = slf.grid.checkForIncompleteSides([x,y-1])
-								}
-							}
-							switch (incomplete_sides.length) {
-							case 1:
-								console.log('WTF 1 incomplete side -- we can get the square!');
-								squares_lost_this_move = -1;
-							case 3:
-								squares_lost_this_move += 0;
-							case 4:
-								squares_lost_this_move += 0;
-							case 2:
-								// console.log('2 incomplete sides -- as expected... how bad is it?');
-								// In this case we're giving up a squares, so the
-								// question is, how bad is it... to find out, we must
-								// play out the next move...
-								var ai = slf.copyScenario();
-								incomp_from_copied = ai.grid.checkForIncompleteSides([x,y]);
-								if (incomp_from_copied.length != 2) {
-									console.log("WTF -- copied scenario doesn't match our expectations...")
-									console.log('Copied scenario shows '+ai.grid.checkForIncompleteSides([x,y]).length + ' incomplete sides');
-								console.log('Copied scenario shows incomplete sides: '+ai.grid.checkForIncompleteSides([x,y]));
-								}
-								ai.makeMove(x,y,vert)
-								// Now find out how many squares there are...
-								//squares_lost_this_move = 0;
-								while (ai.lookForSquares()) {
-									//console.log("Ok, that's bad...");
-									squares_lost_this_move += 1;
-								}
-								if (squares_lost_this_move == 0) {
-									//console.log('Very strange: we didnt see any success -- why not?');
-								}
-								// If we've played out the scenario, then we don't need to do it again...
-								squares_looked_at = 2
-							}
-							squares_looked_at += 1
-						}
-						console.log(x+'.'+y+'-'+vert+'=> loses '+squares_lost_this_move);
-						if (squares_lost_this_move < squares_lost) {
-							squares_lost = squares_lost_this_move; // This is our new move...
-							best_move = [x,y,vert]
-						}
-					}
-				} // end for vert
-			} // end for y
-		} // end for x
-		if (best_move) {
-			console.log('lba Made least bad move: '+best_move+' ... giving up '+squares_lost);
-			slf.makeMove(best_move[0],best_move[1],best_move[2]);
-			return true;
-		}
-		else {
-			console.log('slf.lookForLeastBadAlternative failed - returning false');
-			return false
-		}
-	} // end lookForLeastBadAlternative
-	
-	slf.iterateRandomly = function(doWhat) {
-		// Move randomly through all squares, then hand
-		// doWhat and x and a y to do something with...
-		// if doWhat returns true, we end...
-		yvals = shuffle(range(0,slf.grid.y_size - 1));
-		xvals = shuffle(range(0,slf.grid.x_size - 1))
-		//console.log('yvals = '+yvals);
-		//console.log('xvals = '+xvals);
-		direction = shuffle(range(0,2))
-		for (var d=0; d < direction.length; d++) {
-			for (var y=0; y < yvals.length; y++) {
-				for (var x=0; x < xvals.length; x++) {
-					if (doWhat(xvals[x],yvals[y],direction[d])) {
-						return true
-					}
-				}
-			}
-		}
-	}
-
-	slf.isLineNotADup = function (x, y, vertical) {
-		//console.log('Checking for dup: '+x+'.'+y+'.'+vertical)
-		if (vertical) {
-			var row = slf.grid.vlines[y]
-		}
-		else {
-			var row = slf.grid.hlines[y]
-		}
-		if (row[x]==0) {
-			//console.log('slf.isLineNotADup->true')
-			return true}
-		else {
-			//console.log('slf.isLineNotADup->false')
-			return false
-		}
-	}
-
-	slf.lookRandom = function () {
-		var lookAtPoint = function (x, y, vertical) {
-			if (slf.isLineNotADup(x,y,vertical)) {
-				slf.makeMove(x,y,vertical)
-				return true
-			}
-			else {
-				return false
-			}}
-		return slf.iterateRandomly(lookAtPoint)
-	}
-
-	slf.lookRandomOld = function () {
-		yvals = shuffle(range(0,slf.grid.y_size - 1));
-		xvals = shuffle(range(0,slf.grid.x_size - 1))
-		direction = shuffle(range(0,2))
-		for (var d=0; d < direction.length; d++) {
-			for (var y=0; y < yvals.length; y++) {
-				for (var x=0; x < xvals.length; x++) {
-					dir = direction[d]
-					if (dir==1) {
-						var row = slf.grid.hlines[yvals[y]]
-						var vertical = false;
-					}
-					else {
-						var row = slf.grid.vlines[yvals[y]]
-						var vertical = true;
-					}
-					//console.log('Checking '+xvals[x]+'.'+yvals[y]+' v='+vertical);
-					if (row[xvals[x]]==0) {
-						//console.log('Making move...'+xvals[x]+'.'+yvals[y]);
-						slf.makeMove(xvals[x],yvals[y],vertical)
-						return true}
-				}
-			}
-		}
-	}
-
-	slf.takeTurnDumbest = function () {
-		if (slf.lookRandom()) {return}
-		//console.log('Error - no move found :(');
-		alert("Computer couldn't find a move - game over! \n\nRed: "+slf.grid.score[0]+'\nBlue: '+slf.grid.score[1])
-	}
-
-	slf.takeTurnDumber = function () {
-		console.log('StupidAI.takeTurn()');
-		console.log('look for squares...');
-		if (slf.lookForSquares()) {return}
-		console.log('look for non-losing moves...');
-		if (slf.lookRandom()) {return}
-		console.log('Error - no move found :(');
-		alert("Computer couldn't find a move - game over! \n\nRed: "+slf.grid.score[0]+'\nBlue: '+slf.grid.score[1])
-
-	}
-
-	slf.takeTurnDumb = function () {
-		console.log('StupidAI.takeTurn()');
-		console.log('look for squares...');
-		if (slf.lookForSquares()) {return}
-		console.log('look for non-losing moves...');
-		if (slf.lookForNonLosingMoves()) {return}
-		console.log('Go at random...');
-		if (slf.lookRandom()) {return}
-		console.log('Error - no move found :(');
-		alert("Computer couldn't find a move - game over! \n\nRed: "+slf.grid.score[0]+'\nBlue: '+slf.grid.score[1])
-	}
-
-	slf.takeTurnNotBad = function () {
-		console.log('StupidAI.takeTurn()');
-		console.log('look for squares...');
-		if (slf.lookForSquares()) {return}
-		console.log('look for non-losing moves...');
-		if (slf.lookForNonLosingMoves()) {return}
-		console.log('Look for least bad alternative...');
-		if (slf.lookForLeastBadAlternative()) {return};
-		console.log('Go at random...');
-		if (slf.lookRandom()) {return}
-		console.log('Error - no move found :(');
-		alert("Computer couldn't find a move - game over! \n\nRed: "+slf.grid.score[0]+'\nBlue: '+slf.grid.score[1])
-	}
-
-
-	slf.takeTurn = function () {
-		switch (slf.level) {
-		case 'notbad':
-			console.log('Level: Not Bad')
-			slf.takeTurnNotBad();
-			break;
-		case 'dumb':
-			console.log('Level: dumb')
-			slf.takeTurnDumb();
-			break;
-		case 'dumber':
-			console.log('Level: dumber')
-			slf.takeTurnDumber();
-			break;
-		case 'dumbest':
-			console.log('Level: dumbest')
-			slf.takeTurnDumbest();
-			break;
-		}
-	}
-
-	slf.makeMove = function (x,y,vertical) {
-		//console.log('makeMove('+x+','+y+','+vertical+')');
-		xc = slf.grid.dots.toCoord(x)
-		yc = slf.grid.dots.toCoord(y)
-		if (vertical) {
-			exc = xc;
-			eyc = yc + slf.grid.dots.spacer
-		}
-		else {
-			exc = xc + slf.grid.dots.spacer
-			eyc = yc}
-		slf.grid.dots.startX = xc;
-		slf.grid.dots.startY = yc;
-		slf.grid.dots.endX = exc;
-		slf.grid.dots.endY = eyc;
-		//console.log('Drawing line: '+xc+'.'+yc+'-'+exc+'.'+eyc);
-		//slf.grid.addLine([sx,sy],[ex,ey])
-		slf.grid.dots.drawLine();
-	}
-}
 
 function AbstractGrid (x_size, y_size,dots) {
 	var slf = this;
@@ -666,14 +363,14 @@ function Dots () {
 	}
 
 	slf.setTurnColor = function(ctx) {
-		if (slf.grid.turn == 0) {
-				ctx.strokeStyle = "#ff0000";
-				ctx.fillStyle = "#ff0000";
-			}
-			else {
-				ctx.strokeStyle = "#0000ff";				
-				ctx.fillStyle = "#0000ff";				
-			}
+	    if (slf.grid.turn == 0) {
+		ctx.strokeStyle = "#ff0000";
+		ctx.fillStyle = "#ff0000";
+	    }
+	    else {
+		ctx.strokeStyle = "#0000ff";				
+		ctx.fillStyle = "#0000ff";				
+	    }
 	}
 
 	slf.drawVictory = function (pt) {
@@ -715,79 +412,100 @@ function Dots () {
 	this.endX = -1;
 	this.endY = -1;
 	this.last_draw = 0
-	this.animating = false
-	this.updateAnimation = function () {
-	    // First, clear whatever is there...
-	    console.log('Update animation!');
-	    slf.actx.clearRect(0,0,
-	    slf.animationCanvas.width, 
-	    slf.animationCanvas.height);
-		if (slf.startX > -1 && slf.startY > -1) {
-			// highlight starting point...
-			// Now figure out which direction we're going...
-			slf.actx.beginPath()
-			slf.actx.arc(
-				slf.round(slf.startX),
-				slf.round(slf.startY),					 
-				slf.circle_radius,0,2*Math.PI
-			);
-			slf.setTurnColor(slf.actx)
-			slf.actx.moveTo(slf.round(slf.startX),slf.round(slf.startY));
-		        slf.actx.stroke(); slf.actx.fill();
-			slf.actx.closePath(); 
-			if (isMouseDown) {
-				//console.log('Mouse is down...');
-				if (Math.abs(slf.endY - slf.round(slf.startY)) > 
-						Math.abs(slf.endX - slf.round(slf.startX))) {
-					// if the Y gap is greater than the X gap, then 
-					// we are presumably trying to move vertically...
-					var x = slf.startX
-					var y = slf.endY
-					var endPoint = [slf.startX,slf.round(slf.endY)]
-				}
-				else {
-					// otherwise, we're presumably moving horizontally...
-					var y = slf.startY
-					var x = slf.endX
-					var endPoint = [slf.round(slf.endX),slf.startY]
-				}
-			
-				slf.actx.beginPath();
-				slf.actx.lineTo(x,y);
-				console.log('animating line from ' + slf.startX+','+slf.startY+'  to '+x+','+y);
-				slf.actx.stroke();
-				// endPoint highlighting...
-				slf.actx.beginPath()
-				slf.actx.arc(
-					slf.round(slf.startX),
-					slf.round(slf.startY),					 
-					slf.circle_radius,0,2*Math.PI
-				);
-				slf.setTurnColor(slf.actx)
-				slf.actx.stroke(); slf.actx.fill();
-			}}}
 
-	this.onTouchMove = function (event) {
-		var x = event.touches[0].pageX  - slf.canvas.offsetLeft;
-		var y = event.touches[0].pageY - slf.canvas.offsetTop;
-		if (slf.startX > -1) {
-			slf.endX = y
-			slf.endY = y
-			//console.log('onTouchMove: endX,endY->'+slf.endX+','+slf.endY)
-		}
-		else {
-			slf.startX = x;
-			slf.startY = y;
-			//console.log('onTouchMove: startX,startY->'+slf.startX+','+slf.startY)
-		}
-		if (slf.animating==false) {
-		    console.log('Start interval');
-		    slf.animating = setInterval(slf.updateAnimation,50)
-		}
+    slf.animating = false;
+
+    slf.highlights = [[-1,-1],[-1,-1]];
+
+    this.highlightGridPoint = function(idx,x,y) {
+	if (slf.highlights[idx][0]==x && slf.highlights[idx][1]==y) {
+	    return
+	}
+	else {
+	    console.log('highlighting point %s,%s (idx %s)',x,y,idx);
+	    slf.actx.beginPath()
+	    slf.actx.arc(
+		slf.round(x,true),
+		slf.round(y,false,true),					 
+		slf.circle_radius,0,2*Math.PI
+	    );
+	    slf.setTurnColor(slf.actx)
+	    slf.actx.moveTo(slf.round(x,true),slf.round(y,false,true));
+	    slf.actx.stroke(); slf.actx.fill();
+	    slf.actx.closePath();
+	    slf.highlights[idx] = [x,y]
+	    return true;
 	}
 	
+    }
+    
+    this.updateAnimation = function () {
+	// First, clear whatever is there...
+	var cleared = false;
+	function highlightPoint (idx,x,y) {
+	    // highlight starting point...
+	    // Now figure out which direction we're going...
+	    gx = slf.round(x,true);
+	    gy = slf.round(y,false,true);
+	    if (! cleared && (slf.highlights[idx][0] != gx || slf.highlights[idx][1] != gy)) {
+		console.log('Clear rectangle! highlight %s,%s is changing',slf.highlights[idx][0],slf.highlights[idx][1])
+		slf.actx.clearRect(0,0,slf.canvas.width,slf.canvas.height);
+		cleared = true;
+	    }
+	    if (gx != slf.highlights[idx][gx] || gy != slf.highlights[idx][gy]) {
+		return slf.highlightGridPoint(idx,gx,gy);
+	    }
+	}
+	// Highlight our starting point...
+	updated = false;
+	if (slf.startX > -1 && slf.startY > -1) {
+	     updated = highlightPoint(0,slf.startX,slf.startY)
+	 }
+	 if (slf.endX > -1 && slf.endY > -1) {
+	     updated = updated || highlightPoint(1,slf.endX,slf.endY)
+	 }
+	if (updated) {
+	    console.log('we have a change - drawing line!');
+	    slf.setTurnColor(slf.actx);
+	    slf.drawLine(PREVIEW);
+	    // slf.actx.beginPath();
+	    // slf.actx.moveTo(slf.round(slf.startX),slf.startY)
+	    // slf.actx.lineTo(slf.endX,slf.endY);
+	    // slf.actx.setLineDash([2,4]);
+	    // slf.actx.lineWidth = 2;
+	    // slf.actx.stroke();
+	}
+	return;
+    }
+
+    this.onTouchMove = function (event) {
+	if (! slf.inTouch) {
+	    console.log('first touch');
+	    slf.inTouch = true;
+	    slf.isMouseDown = true;
+	    slf.touches = [];
+	    slf.touches.push(event.touches);
+	    slf.startX = event.touches[0].pageX  - slf.canvas.offsetLeft;
+	    slf.startY = event.touches[0].pageY - slf.canvas.offsetTop;
+	    console.log('startX,startY=%s,%s',slf.startX,slf.startY);
+
+	}
+	else {
+	    slf.touches.push(event.touches);
+	    //console.log('we have %s new events added to %s total',event.touches.length,slf.touches.length);
+	    //console.log('onTouchMove %s',event);
+	    slf.endX = event.touches[0].pageX  - slf.canvas.offsetLeft;
+	    slf.endY = event.touches[0].pageY - slf.canvas.offsetTop;
+	    slf.updateAnimation();
+	}
+	//if (slf.animating==false) {
+	    //console.log('Start interval');
+	    //slf.animating = setInterval(slf.updateAnimation,50)
+    //}
+    }
+	
 	this.onMouseMove = function (event) {
-		//console.log('onMouseMove');
+	    console.log('onMouseMove %s',event);
 		if (isMouseDown) {
 			//alert('Mouse is down')
 			var x = event.pageX - slf.canvas.offsetLeft
@@ -808,14 +526,21 @@ function Dots () {
 		}
 	} // end onMouseMove
 
-	this.round = function (n) {
-		//i = n / slf.spacer;
-		//i = Math.round(i);
-		//n = i*slf.spacer;
-		//return n;
-		return slf.toCoord(slf.toGrid(n))
+    this.round = function (n,is_x,is_y) {
+	//i = n / slf.spacer;
+	//i = Math.round(i);
+	//n = i*slf.spacer;
+	//return n;
+	gn = slf.toGrid(n)
+	if (gn < 0) {gn = 0}
+	if (is_y && gn > (slf.grid.x_size - 1)) {
+	    gn = slf.grid.x_size - 1
 	}
-
+	if (! is_x && gn > (slf.grid.y_size - 1)) {
+	    gn = slf.grid.y_size - 1
+	}
+	return slf.toCoord(gn);
+    }
 	this.toGrid = function (n) {
 		i = n / slf.spacer
 		i = Math.round(i)
@@ -826,97 +551,132 @@ function Dots () {
 		return (n+1) * slf.spacer
 	}
 
-	this.onTouchEnd = function (event) {
-		var x = event.changedTouches[0].pageX - slf.canvas.offsetLeft
-		var y = event.changedTouches[0].pageY - slf.canvas.offsetTop
-		if ((slf.startX > -1) && (slf.endX > -1)) {
-			slf.drawLine()
-		}
-		//console.log('Clearing animation interval.');
-		clearInterval(slf.animating)
-		slf.animating = false
-		slf.updateAnimation()
+    this.onTouchEnd = function (event) {
+	console.log('onTouchEnd changedTouches=%s (%s)',event.changedTouches, event.changedTouches.length)
+	if (event.changedTouches) {
+	    slf.touches.push(event.changedTouches);
 	}
-		
-	this.onMouseDown = function (event) {
-		var x = event.pageX - slf.canvas.offsetLeft
-		var y = event.pageY - slf.canvas.offsetTop
-		// Draw animation in a bit...
-		if (slf.startX > -1) {
-			slf.endX = x;
-			slf.endY = y;
-			slf.drawLine()
-			slf.startX = -1; slf.startY = -1; slf.endX = -1; slf.endY = -1;
-		}
-		else {
-			slf.startX = x;
-			slf.startY = y;
-		}}
-
-	this.onMouseUp = function(event) {
-		//console.log('onMouseUp')
-		var x = event.pageX - slf.canvas.offsetLeft
-		var y = event.pageY - slf.canvas.offsetTop
-		if ((slf.startX > -1) && (slf.endX > -1)) {
-			// We are making a line...
-			slf.drawLine()
-			slf.startX = -1; slf.startY = -1; slf.endX = -1; slf.endY = -1;
-		}
-		//console.log('Clearing animation interval.');
-		clearInterval(slf.animating)
-		slf.animating = false
-		slf.updateAnimation()
+	slf.startX = slf.touches[0][0].pageX - slf.canvas.offsetLeft
+	slf.startY = slf.touches[0][0].pageY - slf.canvas.offsetTop
+	slf.endX = slf.touches[slf.touches.length-1][0].pageX - slf.canvas.offsetLeft
+	slf.endY = slf.touches[slf.touches.length-1][0].pageY - slf.canvas.offsetTop
+	slf.touches = [];; slf.inTouch = false;
+	console.log('We have seen %s touches. We go from (%s,%s) to (%s,%s)',
+		    slf.touches.length,
+		    slf.startX,slf.startY,
+		    slf.endX,slf.endY);
+	slf.drawLine()
+	// var x = event.changedTouches[0].pageX - slf.canvas.offsetLeft
+	// 	var y = event.changedTouches[0].pageY - slf.canvas.offsetTop
+	// 	if ((slf.startX > -1) && (slf.endX > -1)) {
+	// 		slf.drawLine()
+	// 	}
+	//console.log('Clearing animation interval.');
+	clearInterval(slf.animating)
+	slf.animating = false
+	slf.updateAnimation()
+    }
+   
+    this.onMouseDown = function (event) {
+	console.log('mousedown %s',event);
+	var x = event.pageX - slf.canvas.offsetLeft
+	var y = event.pageY - slf.canvas.offsetTop
+	// Draw animation in a bit...
+	if (slf.startX > -1) {
+	    console.log('Draw line final!');
+	    slf.endX = x;
+	    slf.endY = y;
+	    slf.drawLine()
+	    //slf.startX = -1; slf.startY = -1; slf.endX = -1; slf.endY = -1;
 	}
+	else {
+	    slf.startX = x;
+	    slf.startY = y;
+	}}
+    
+    this.onMouseUp = function(event) {
+	//console.log('onMouseUp %s',event)
+	var x = event.pageX - slf.canvas.offsetLeft
+	var y = event.pageY - slf.canvas.offsetTop
+	if ((slf.startX > -1) && (slf.endX > -1)) {
+	    // We are making a line...
+	    slf.drawLine()
+	    slf.startX = -1; slf.startY = -1; slf.endX = -1; slf.endY = -1;
+	}
+	//console.log('Clearing animation interval.');
+	clearInterval(slf.animating)
+	slf.animating = false
+	slf.updateAnimation()
+    }
 
-	this.drawLine = function () {
-		//console.log('Draw line: '+slf.startX+','+slf.startY+'->'+slf.endX+','+slf.endY);
-		var sx = slf.toGrid(slf.startX); 
-		var sy = slf.toGrid(slf.startY);
-		var ex = slf.toGrid(slf.endX);
-		var ey = slf.toGrid(slf.endY);
-		if (ex >= slf.grid.x_size) {ex = slf.grid.x_size - 1}
-		if (ey >= slf.grid.y_size) {ey = slf.grid.y_size - 1}
-		if (sx >= slf.grid.x_size) {sx = slf.grid.x_size - 1}
-		if (sy >= slf.grid.y_size) {sy = slf.grid.y_size - 1}
-		if (ex < 0) {ex = 0}
-		if (ey < 0) {ey = 0}
-		if (sx < 0) {sx = 0}
-		if (sy < 0) {sy = 0}
-		//console.log('Draw line: '+sx+','+sy+'->'+ex+','+ey);
-		if (((ey==sy) || (ex==sx)) && ((ey!=sy) || (ex!=sx))) {
-			// We only act if we're a straight line...
-			if ((ey - sy) > 1) {
-				ey = sy+1
-			}
-			else if ((sy - ey) > 1) {
-				sy = ey+1
-			}
-			else if ((ex - sx) > 1) {
-				ex = sx+1
-			}
-			else if ((sx - ex) > 1) {
-				sx = ex+1
-			}
-			// Now draw the actual path...
-			slf.ctx.beginPath();
-			slf.setTurnColor(slf.ctx);
-			slf.setTurnColor(slf.lmctx);
-			slf.ctx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
-			slf.ctx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
-			slf.lmctx.clearRect(0,0,slf.lmCanvas.width,slf.lmCanvas.height)
-			slf.lmctx.beginPath()
-			slf.lmctx.lineWidth = 5
-			slf.lmctx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
-			slf.lmctx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
-			slf.lmctx.stroke()
-			//alert('Drawing line from '+slf.startX+'+'+slf.startY+' to '+slf.endX+'+'+slf.endY);
-			slf.ctx.stroke()
-			//console.log('Adding line to grid now: '+sx+','+sy+'-'+ex+','+ey);
-			slf.grid.addLine([sx,sy],[ex,ey])
-		}
+    this.drawLine = function (mode) {
+	if (! mode) {mode = FINAL;}
+	// console.log('Draw line: '+slf.startX+','+slf.startY+'->'+slf.endX+','+slf.endY);
+	var sx = slf.toGrid(slf.startX); 
+	var sy = slf.toGrid(slf.startY);
+	var ex = slf.toGrid(slf.endX);
+	var ey = slf.toGrid(slf.endY);
+	// console.log('drawLine mode:%s %s,%s -> %s,%s',
+	// 	    mode,
+	// 	    sx,sy,
+	// 	    ex,ey);
+	if (ex >= slf.grid.x_size) {ex = slf.grid.x_size - 1}
+	if (ey >= slf.grid.y_size) {ey = slf.grid.y_size - 1}
+	if (sx >= slf.grid.x_size) {sx = slf.grid.x_size - 1}
+	if (sy >= slf.grid.y_size) {sy = slf.grid.y_size - 1}
+	if (ex < 0) {ex = 0}
+	if (ey < 0) {ey = 0}
+	if (sx < 0) {sx = 0}
+	if (sy < 0) {sy = 0}
+	//console.log('Draw line: '+sx+','+sy+'->'+ex+','+ey);
+	if (((ey==sy) || (ex==sx)) && ((ey!=sy) || (ex!=sx))) {
+	    // We only act if we're a straight line...
+	    if ((ey - sy) > 1) {
+		ey = sy+1
+	    }
+	    else if ((sy - ey) > 1) {
+		sy = ey+1
+	    }
+	    else if ((ex - sx) > 1) {
+		ex = sx+1
+	    }
+	    else if ((sx - ex) > 1) {
+		sx = ex+1
+	    }
+	    // Now draw the actual path...
+	    if (mode==FINAL) {
+		slf.actx.clearRect(0,0,slf.animationCanvas.width,slf.animationCanvas.height);
+		slf.ctx.beginPath();
+		slf.setTurnColor(slf.ctx);
+		slf.setTurnColor(slf.lmctx);
+		slf.ctx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
+		slf.ctx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
+		slf.lmctx.clearRect(0,0,slf.lmCanvas.width,slf.lmCanvas.height)
+		slf.lmctx.beginPath()
+		slf.lmctx.lineWidth = 5
+		slf.lmctx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
+		slf.lmctx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
+		slf.lmctx.stroke()
+		//alert('Drawing line from '+slf.startX+'+'+slf.startY+' to '+slf.endX+'+'+slf.endY);
+		slf.ctx.stroke()
+		//console.log('Adding line to grid now: '+sx+','+sy+'-'+ex+','+ey);
+		slf.grid.addLine([sx,sy],[ex,ey])
 		slf.startX = -1; slf.startY = -1; slf.endX = -1; slf.endY = -1;
+	    }
+	    else {
+		//console.log('Drawing preview line from %s,%s to %s,%s',sx,sy,ex,ey);
+		slf.setTurnColor(slf.actx);
+		slf.actx.beginPath();
+		slf.actx.lineWidth = 5;
+		slf.actx.setLineDash([3,6]);
+		slf.actx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
+		slf.actx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
+		slf.actx.stroke();
+	    }
 	}
-	
+
+    }
+    
 }
 	
 function draw () {

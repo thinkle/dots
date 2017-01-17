@@ -5,6 +5,7 @@
     <link href="http://fonts.googleapis.com/css?family=Raleway+Dots:400" rel="stylesheet" type="text/css">
     <link href='http://fonts.googleapis.com/css?family=Slabo+13px' rel='stylesheet' type='text/css'>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script type="text/javascript" src="ai.js"></script>    
     <script type="text/javascript" src="index.js"></script>
     <style>
       #controls {
@@ -16,8 +17,8 @@
       #play {color: #fff; background-color: #ff2323; font-family: "Raleway Dots"; font-size: 92px; text-align: center; padding: 10px; border-radius: 5%;}
     </style>
   </head>
-  <div class="app">
     <body onload="draw();" style='font-family:Slabo'>
+      <div class="app">
       <div id="menu">&#8801 </div>
     <table id="controls">
 	<tr>
@@ -39,6 +40,7 @@
 	    <br/>X: <input style="width:3em" id="x" value="8" type="number"> Y: <input style="width:3em" value="8" id="y" type="number">
 	  </td>
 	  <td valign="top" halign="right"  style="padding-left: 10px; padding-right: 10px; width: auto; text-align: right">
+	    <a href="testCanvas.html">Test?</a>
 	    <button id="restart"><b>Restart</b>
 	      <span id="resetNote" style="color: #f00; font-style:italic;font-size:small;display:none">Restart game to see new grid size</span>
 	    </button>
