@@ -703,5 +703,6 @@ $(document).ready(
 	    $('#controls').slideDown();
 	    $('#menu').slideUp();
 	}) // end click
+	draw();
     })// end document ready
 
