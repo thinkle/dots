@@ -1,7 +1,7 @@
 {
-  "name": "phonegap-template-blank",
+  "name": "Dots",
   "version": "1.1.0",
-  "description": "blank template for phonegap and cordova projects",
+  "description": "A simple dots game.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/phonegap/phonegap-app-blank.git"
