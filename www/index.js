@@ -1,6 +1,25 @@
 const FINAL = 2
 const PREVIEW = 3
 
+function getWindowSizes()
+{
+  var windowHeight = 0, windowWidth = 0;
+ 
+  if (typeof (window.innerWidth) == 'number') {
+      windowHeight = window.innerHeight;
+      windowWidth = window.innerWidth;
+     
+  } else if (document.documentElement && (document.documentElement.clientWidth || document.documentElement.clientHeight)) {
+      windowHeight = document.documentElement.clientHeight;
+      windowWidth = document.documentElement.clientWidth;
+     
+  } else if (document.body && (document.body.clientWidth || document.body.clientHeight)) {
+     windowHeight = document.body.clientHeight;
+     windowWidth = document.body.clientWidth;
+  }
+  return [windowWidth, windowHeight];
+}
+
 function deepCopyArray (a) {
 	var b = $.extend(true, [], a);
 	return b}
@@ -251,9 +270,12 @@ function Dots () {
 		slf.lmCanvas = document.getElementById("lastmove");
 		slf.ctx = slf.canvas.getContext("2d");
 		slf.actx = slf.animationCanvas.getContext("2d");
-		slf.lmctx = slf.lmCanvas.getContext("2d");
-		slf.canvas.width = Math.round(screen.width*0.85);
-		slf.canvas.height = Math.round(screen.height*0.85);
+	    slf.lmctx = slf.lmCanvas.getContext("2d");
+	    var sizes = getWindowSizes();
+	    var w = sizes[0]
+	    var h = sizes[1]
+		slf.canvas.width = Math.round(w*0.85);
+		slf.canvas.height = Math.round(h*0.85);
 		slf.animationCanvas.width = slf.canvas.width;
 		slf.animationCanvas.height = slf.canvas.height;
 		slf.lmCanvas.width = slf.canvas.width;
@@ -681,7 +703,8 @@ function Dots () {
 	
 function draw () {
     dots = new Dots(); // Global...
-    xratio = screen.width/screen.height
+    sizes = getWindowSizes()
+    xratio = sizes[0]/sizes[1]
     ydots = 8
     xdots = 8 * xratio
     document.getElementById('x').value = Math.round(xdots)
@@ -693,6 +716,7 @@ function draw () {
 }
 
 $(document).ready(
+    
     function () {
 	$('#play').click(function () {
 	    $('#controls').slideUp();
