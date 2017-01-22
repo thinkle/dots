@@ -252,8 +252,8 @@ function Dots () {
 		slf.ctx = slf.canvas.getContext("2d");
 		slf.actx = slf.animationCanvas.getContext("2d");
 		slf.lmctx = slf.lmCanvas.getContext("2d");
-		slf.canvas.width = Math.round(screen.innerWidth*0.85);
-		slf.canvas.height = Math.round(screen.innerHeight*0.85);
+		slf.canvas.width = Math.round(screen.width*0.85);
+		slf.canvas.height = Math.round(screen.height*0.85);
 		slf.animationCanvas.width = slf.canvas.width;
 		slf.animationCanvas.height = slf.canvas.height;
 		slf.lmCanvas.width = slf.canvas.width;
