@@ -147,52 +147,71 @@ function AbstractGrid (x_size, y_size,dots) {
 			}
 		}
 	}
+	slf.getCoordinates = function (p1, p2) {
+		let mode;
+		let [x1,y1] = p1;
+		let [x2,y2] = p2;
+		if (x1==x2) {
+			// x coordinates match...
+			mode = 'V';
+			// swap if out of order
+			if (y2 < y1) {
+				[y2,y1] = [y1,y2];				
+			}
+			if (y2 - y1 > 1) {
+				throw Error('Invalid gap',y2-y1);
+			}
+		} else if (y1 == y2) {
+			// y coordinates match...
+			mode = 'H';
+			if (x2 < x1) {
+				// swap if out of order
+				[x2,x1] = [x1,x2];
+			}
+			if (x2 - x1 > 1) {
+				throw Error('Invalid gap',x2-x1);
+			}
+		} else {
+			throw Error('Invalid line');
+		}		
+		return {x1, y1, x2, y2, mode}
+	}
+
+	slf.lineIsFilled = function ({x1,y1,mode}) {
+		if (mode=='V') {
+			if (slf.vlines[y1][x1]) {
+				return true
+			}
+		}
+		if (mode=='H') {
+			if (slf.hlines[y1][x1]) {
+				return true;
+			}
+		}
+	}
 
 	slf.addLine = function(p1, p2) {
+		let slf = this;
+		var {x1,y1,x2,y2,mode} = slf.getCoordinates(p1,p2)
+		if (slf.lineIsFilled({x1,y1,x2,y2,mode})) {
+			console.log('Oops -- full line!')
+			return
+		}
 		// Given two coordinates, we draw a line...
 		slf.alternate_turn = true
-		if (p1[0]==p2[0]) {
-			// Our X coordinates match...
-			if (p2[1] > p1[1]) {
-				var y1 = p1[1]
-				var y2 = p2[1]
-			}
-			else {
-				// Swap them if they're wrong way around...
-				var y1 = p2[1]
-				var y2 = p1[1]
-			}
-			if ((y2 - y1) != 1) {
-				console.log('Warning: incorrect gap between points '+p1+'+'+p2)
-			}
-			//console.log('slf.vlines['+y1+']['+p1[0]+']=1');
+		if (mode=='V') { // vertical lines						
 			slf.empty = false
-			slf.vlines[y1][p1[0]] = 1
-			//console.log('Added vertical line (turn '+slf.turn+'): '+p1[0]+','+p1[1])
-			// We just added a vertical line -- let's check the relevant square (to the left and right of the top)
-			slf.dots.drawVictory(slf.checkSquare([p1[0],y1]))
-			slf.dots.drawVictory(slf.checkSquare([p1[0]-1,y1]))
-		}
-		else if (p1[1]==p2[1]) {
-			// Our Y coordinates match...
-			if (p2[0] > p1[0]) {
-				var x1 = p1[0]
-				var x2 = p2[0]
-			}
-			else {
-				var x1 = p2[0];
-				var x2 = p1[0];
-			}
-			if ((x2-x1) != 1) {
-				console.log('Warning: incorrect gap between points '+p1+'+'+p2);
-			}
-			//console.log('slf.hlines['+p1[1]+']['+x1+']=1');
-			slf.hlines[p1[1]][x1] = 1
-			slf.empty = false
-			//console.log('Added horizontal line: '+p1[0]+','+p1[1])
-			// We just added a horizontal line -- let's check the relevant squares (at the origin and above it...
-			slf.dots.drawVictory(slf.checkSquare([x1,p1[1]]));
-			slf.dots.drawVictory(slf.checkSquare([x1,p1[1]-1]));
+			slf.vlines[y1][x1] = 1				
+			// We just added a vertical line -- let's check the relevant square 
+			// (to the left and right of the top)
+			slf.dots.drawVictory(slf.checkSquare([x1,y1]))
+			slf.dots.drawVictory(slf.checkSquare([x1-1,y1]))
+		}		
+		else if (mode=='H') { // horizontal lines						
+			slf.hlines[y1][x1] = 1
+			slf.empty = false				
+			slf.dots.drawVictory(slf.checkSquare([x1,y1]));
+			slf.dots.drawVictory(slf.checkSquare([x1,y1-1]));			
 		}
 		else {
 			console.log("That's odd -- we shouldn't ever get here :( Points: "+p1+','+p2)
@@ -246,10 +265,10 @@ function Dots () {
 		slf.lmCanvas = document.getElementById("lastmove");
 		slf.ctx = slf.canvas.getContext("2d");
 		slf.actx = slf.animationCanvas.getContext("2d");
-	    slf.lmctx = slf.lmCanvas.getContext("2d");
-	    var sizes = getWindowSizes();
-	    var w = sizes[0]
-	    var h = sizes[1]
+		slf.lmctx = slf.lmCanvas.getContext("2d");
+		var sizes = getWindowSizes();
+		var w = sizes[0]
+		var h = sizes[1]
 		slf.canvas.width = Math.round(w*0.85);
 		slf.canvas.height = Math.round(h*0.85);
 		slf.animationCanvas.width = slf.canvas.width;
@@ -502,10 +521,8 @@ function Dots () {
     //}
     }
 	
-	this.onMouseMove = function (event) {
-	    console.log('onMouseMove %s',event);
-		if (isMouseDown) {
-			//alert('Mouse is down')
+	this.onMouseMove = function (event) {	    
+		if (isMouseDown) {			
 			var x = event.pageX - slf.canvas.offsetLeft
 			var y = event.pageY - slf.canvas.offsetTop
 			if (slf.startX > -1) {
@@ -514,22 +531,16 @@ function Dots () {
 			}
 			else {
 				slf.startX = x;
-				slf.startY = y;
-				//console.log('Update startX'+slf.startX+'+'+slf.startY);
+				slf.startY = y;				
 			}
-			if (slf.animating==false) {
-				//console.log('Start interval');
+			if (slf.animating==false) {				
 				slf.animating = setInterval(slf.updateAnimation,100)
 			}
 		}
 	} // end onMouseMove
 
-    this.round = function (n,is_x,is_y) {
-	//i = n / slf.spacer;
-	//i = Math.round(i);
-	//n = i*slf.spacer;
-	//return n;
-	gn = slf.toGrid(n)
+    this.round = function (n,is_x,is_y) {	
+	let gn = slf.toGrid(n)
 	if (gn < 0) {gn = 0}
 	if (is_y && gn > (slf.grid.x_size - 1)) {
 	    gn = slf.grid.x_size - 1
@@ -540,7 +551,7 @@ function Dots () {
 	return slf.toCoord(gn);
     }
 	this.toGrid = function (n) {
-		i = n / slf.spacer
+		var i = n / slf.spacer
 		i = Math.round(i)
 		return i-1
 	}
@@ -550,7 +561,7 @@ function Dots () {
 	}
 
     this.onTouchEnd = function (event) {
-	console.log('onTouchEnd changedTouches=%s (%s)',event.changedTouches, event.changedTouches.length)
+	
 	if (event.changedTouches) {
 	    slf.touches.push(event.changedTouches);
 	}
@@ -558,11 +569,7 @@ function Dots () {
 	slf.startY = slf.touches[0][0].pageY - slf.canvas.offsetTop
 	slf.endX = slf.touches[slf.touches.length-1][0].pageX - slf.canvas.offsetLeft
 	slf.endY = slf.touches[slf.touches.length-1][0].pageY - slf.canvas.offsetTop
-	slf.touches = [];; slf.inTouch = false;
-	console.log('We have seen %s touches. We go from (%s,%s) to (%s,%s)',
-		    slf.touches.length,
-		    slf.startX,slf.startY,
-		    slf.endX,slf.endY);
+	slf.touches = [];; slf.inTouch = false;	
 	slf.drawLine()
 	// var x = event.changedTouches[0].pageX - slf.canvas.offsetLeft
 	// 	var y = event.changedTouches[0].pageY - slf.canvas.offsetTop
@@ -575,22 +582,23 @@ function Dots () {
 	slf.updateAnimation()
     }
    
-    this.onMouseDown = function (event) {
-	console.log('mousedown %s',event);
-	var x = event.pageX - slf.canvas.offsetLeft
-	var y = event.pageY - slf.canvas.offsetTop
-	// Draw animation in a bit...
-	if (slf.startX > -1) {
-	    console.log('Draw line final!');
-	    slf.endX = x;
-	    slf.endY = y;
-	    slf.drawLine()
-	    //slf.startX = -1; slf.startY = -1; slf.endX = -1; slf.endY = -1;
+  this.onMouseDown = function (event) {
+		console.log('mousedown %s',event);
+		var x = event.pageX - slf.canvas.offsetLeft
+		var y = event.pageY - slf.canvas.offsetTop
+		// Draw animation in a bit...
+		if (slf.startX > -1) {
+				console.log('Draw line final!');
+				slf.endX = x;
+				slf.endY = y;
+				slf.drawLine()
+				//slf.startX = -1; slf.startY = -1; slf.endX = -1; slf.endY = -1;
+		}
+		else {
+				slf.startX = x;
+				slf.startY = y;
+		}
 	}
-	else {
-	    slf.startX = x;
-	    slf.startY = y;
-	}}
     
     this.onMouseUp = function(event) {
 	//console.log('onMouseUp %s',event)
@@ -607,71 +615,80 @@ function Dots () {
 	slf.updateAnimation()
     }
 
-    this.drawLine = function (mode) {
-	if (! mode) {mode = FINAL;}
-	// console.log('Draw line: '+slf.startX+','+slf.startY+'->'+slf.endX+','+slf.endY);
-	var sx = slf.toGrid(slf.startX); 
-	var sy = slf.toGrid(slf.startY);
-	var ex = slf.toGrid(slf.endX);
-	var ey = slf.toGrid(slf.endY);
-	// console.log('drawLine mode:%s %s,%s -> %s,%s',
-	// 	    mode,
-	// 	    sx,sy,
-	// 	    ex,ey);
-	if (ex >= slf.grid.x_size) {ex = slf.grid.x_size - 1}
-	if (ey >= slf.grid.y_size) {ey = slf.grid.y_size - 1}
-	if (sx >= slf.grid.x_size) {sx = slf.grid.x_size - 1}
-	if (sy >= slf.grid.y_size) {sy = slf.grid.y_size - 1}
-	if (ex < 0) {ex = 0}
-	if (ey < 0) {ey = 0}
-	if (sx < 0) {sx = 0}
-	if (sy < 0) {sy = 0}
-	//console.log('Draw line: '+sx+','+sy+'->'+ex+','+ey);
-	if (((ey==sy) || (ex==sx)) && ((ey!=sy) || (ex!=sx))) {
-	    // We only act if we're a straight line...
-	    if ((ey - sy) > 1) {
-		ey = sy+1
-	    }
-	    else if ((sy - ey) > 1) {
-		sy = ey+1
-	    }
-	    else if ((ex - sx) > 1) {
-		ex = sx+1
-	    }
-	    else if ((sx - ex) > 1) {
-		sx = ex+1
-	    }
-	    // Now draw the actual path...
-	    if (mode==FINAL) {
-		slf.actx.clearRect(0,0,slf.animationCanvas.width,slf.animationCanvas.height);
-		slf.ctx.beginPath();
-		slf.setTurnColor(slf.ctx);
-		slf.setTurnColor(slf.lmctx);
-		slf.ctx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
-		slf.ctx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
-		slf.lmctx.clearRect(0,0,slf.lmCanvas.width,slf.lmCanvas.height)
-		slf.lmctx.beginPath()
-		slf.lmctx.lineWidth = 5
-		slf.lmctx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
-		slf.lmctx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
-		slf.lmctx.stroke()
-		//alert('Drawing line from '+slf.startX+'+'+slf.startY+' to '+slf.endX+'+'+slf.endY);
-		slf.ctx.stroke()
-		//console.log('Adding line to grid now: '+sx+','+sy+'-'+ex+','+ey);
-		slf.grid.addLine([sx,sy],[ex,ey])
-		slf.startX = -1; slf.startY = -1; slf.endX = -1; slf.endY = -1;
-	    }
-	    else {
-		//console.log('Drawing preview line from %s,%s to %s,%s',sx,sy,ex,ey);
-		slf.setTurnColor(slf.actx);
-		slf.actx.beginPath();
-		slf.actx.lineWidth = 5;
-		slf.actx.setLineDash([3,6]);
-		slf.actx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
-		slf.actx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
-		slf.actx.stroke();
-	    }
-	}
+  this.drawLine = function (mode) {
+			if (! mode) {mode = FINAL;}
+			// console.log('Draw line: '+slf.startX+','+slf.startY+'->'+slf.endX+','+slf.endY);
+			var sx = slf.toGrid(slf.startX); 
+			var sy = slf.toGrid(slf.startY);
+			var ex = slf.toGrid(slf.endX);
+			var ey = slf.toGrid(slf.endY);
+			// console.log('drawLine mode:%s %s,%s -> %s,%s',
+			// 	    mode,
+			// 	    sx,sy,
+			// 	    ex,ey);
+			if (ex >= slf.grid.x_size) {ex = slf.grid.x_size - 1}
+			if (ey >= slf.grid.y_size) {ey = slf.grid.y_size - 1}
+			if (sx >= slf.grid.x_size) {sx = slf.grid.x_size - 1}
+			if (sy >= slf.grid.y_size) {sy = slf.grid.y_size - 1}
+			if (ex < 0) {ex = 0}
+			if (ey < 0) {ey = 0}
+			if (sx < 0) {sx = 0}
+			if (sy < 0) {sy = 0}
+			
+			if (((ey==sy) || (ex==sx)) && ((ey!=sy) || (ex!=sx))) {
+					// We only act if we're a straight line...
+				if ((ey - sy) > 1) {
+					ey = sy+1
+				}
+				else if ((sy - ey) > 1) {
+					sy = ey+1
+				}
+				else if ((ex - sx) > 1) {
+					ex = sx+1
+				}
+				else if ((sx - ex) > 1) {
+					sx = ex+1
+				}
+				// Now draw the actual path...
+				if (mode==FINAL) {
+					slf.setTurnColor(slf.ctx);					
+          slf.setTurnColor(slf.lmctx);
+					slf.actx.clearRect(
+            0,
+            0,
+            slf.animationCanvas.width,
+            slf.animationCanvas.height
+          );
+					if (slf.grid.lineIsFilled(slf.grid.getCoordinates([sx,sy],[ex,ey]))) {
+						console.log('Duplicate line!');
+						return;
+					}											
+					slf.ctx.beginPath();					
+					slf.ctx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
+					slf.ctx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
+					slf.lmctx.clearRect(0,0,slf.lmCanvas.width,slf.lmCanvas.height)
+					slf.lmctx.beginPath()
+					slf.lmctx.lineWidth = 5
+					slf.lmctx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
+					slf.lmctx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
+					slf.lmctx.stroke()
+					//alert('Drawing line from '+slf.startX+'+'+slf.startY+' to '+slf.endX+'+'+slf.endY);
+					slf.ctx.stroke()
+					//console.log('Adding line to grid now: '+sx+','+sy+'-'+ex+','+ey);
+					slf.grid.addLine([sx, sy], [ex, ey]);
+					slf.startX = -1; slf.startY = -1; slf.endX = -1; slf.endY = -1;
+				}
+				else {
+					//console.log('Drawing preview line from %s,%s to %s,%s',sx,sy,ex,ey);
+					slf.setTurnColor(slf.actx);
+					slf.actx.beginPath();
+					slf.actx.lineWidth = 5;
+					slf.actx.setLineDash([3,6]);
+					slf.actx.moveTo(slf.toCoord(sx),slf.toCoord(sy));
+					slf.actx.lineTo(slf.toCoord(ex),slf.toCoord(ey));
+					slf.actx.stroke();
+				}
+			}
 
     }
     
