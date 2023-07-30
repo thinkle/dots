@@ -28,31 +28,7 @@ var isMouseDown = false;
 document.onmousedown = function () {isMouseDown = true};
 document.onmouseup = function () {isMouseDown = false};
 
-function shuffle(array) {
-  var currentIndex = array.length, temporaryValue, randomIndex ;
 
-  // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
-
-    // Pick a remaining element...
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex -= 1;
-
-    // And swap it with the current element.
-    temporaryValue = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temporaryValue;
-  }
-
-  return array;
-}
-
-function range(start, count) {
-  return Array.apply(0, Array(count))
-    .map(function (element, index) { 
-      return index + start;  
-    });
-}
 
 
 function AbstractGrid (x_size, y_size,dots) {
